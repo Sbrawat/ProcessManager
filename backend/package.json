@@ -1,17 +1,17 @@
 {
   "name": "backend",
+  "author": "Suraj Rawat",
+  "license": "ISC",
+  "type": "module",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "app.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js",
-    "dev": "nodemon app.js"
+    "start": "node app.mjs",
+    "dev": "nodemon app.mjs"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
