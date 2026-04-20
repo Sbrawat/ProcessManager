@@ -24,9 +24,20 @@ start "OS Backend" cmd /k "cd backend && npm run dev"
 :: Start the Vite React frontend in a new command prompt window
 start "OS Frontend" cmd /k "cd frontend && npm run dev"
 
+:: Start the Vite React frontend in a new command prompt window
+start "OS Frontend" cmd /k "cd frontend && npm run dev"
+
 echo.
 echo SUCCESS! Application servers are booting up.
-echo The dashboard should open automatically in your browser.
-echo If it does not, manually navigate to: http://localhost:5173
+echo Waiting for Vite to initialize...
+
+:: Wait for 3 seconds silently
+timeout /t 3 /nobreak > NUL
+
+:: Open the default web browser to the dashboard
+start http://localhost:5173
+
+echo.
+echo The dashboard has been opened in your browser!
 echo.
 pause

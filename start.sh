@@ -28,8 +28,21 @@ npm run dev &
 cd ../frontend
 npm run dev &
 
-echo -e "\nSUCCESS! Application is running."
-echo "Navigate to http://localhost:5173 in your web browser."
+echo -e "\nSUCCESS! Application servers are booting up."
+echo "Waiting for Vite to initialize..."
+
+# Wait for 3 seconds
+sleep 3
+
+# Detect OS and open the default browser
+if command -v xdg-open > /dev/null; then
+  xdg-open http://localhost:5173  # For Linux
+elif command -v open > /dev/null; then
+  open http://localhost:5173      # For Mac
+else
+  echo "Please manually open your browser to http://localhost:5173"
+fi
+
 echo "Press Ctrl+C in this terminal to stop both servers."
 
 # Wait keeps the script running so the background processes stay alive
