@@ -1,121 +1,116 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
+import './App.css';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+
+// 1. Establish the WebSocket connection outside the component
+// This prevents React from creating a new connection every time the UI re-renders.
+const socket = io('http://localhost:5000');
 
 function App() {
-  const [count, setCount] = useState(0)
+  // 2. State Management
+  const [osData, setOsData] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+  // 3. The WebSocket Listener
+  useEffect(() => {
+    // Listen for the custom event we created in the Node backend
+    socket.on('os-metrics', (data) => {
+      // Sort processes by CPU usage (Descending) so the heaviest tasks are always at the top
+      if (data.processes) {
+        data.processes.sort((a, b) => b.cpu - a.cpu);
+      }
+      setOsData(data);
+    });
 
-      <div className="ticks"></div>
+    // Cleanup function: If the component unmounts, stop listening to prevent memory leaks
+    return () => {
+      socket.off('os-metrics');
+    };
+  }, []);
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+  // Show a loading screen until the first packet of data arrives from the backend
+  if (!osData) return <div className="loading">Connecting to OS Engine...</div>;
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+return (
+    <div className="dashboard">
+      <header>
+        <h1>⚙️ Real-Time OS Dashboard</h1>
+        {errorMessage && <div className="error-banner">{errorMessage}</div>}
+      </header>
+
+      <div className="system-health-grid">
+        {/* --- CPU CORES CHART --- */}
+        <div className="card">
+          <h2>CPU Load per Core (%)</h2>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={osData.cpu.cores.map((load, index) => ({ name: `Core ${index}`, load }))}>
+                <XAxis dataKey="name" stroke="#8884d8" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                {/* Dynamically color the bar red if load is > 80% */}
+                <Bar dataKey="load" fill="#4ade80" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* --- MEMORY USAGE --- */}
+        <div className="card">
+          <h2>Memory Consumption (RAM)</h2>
+          <div className="memory-stats">
+            <p><strong>Total:</strong> {(osData.memory.total / 1073741824).toFixed(2)} GB</p>
+            <p><strong>Used:</strong> {(osData.memory.used / 1073741824).toFixed(2)} GB</p>
+            <p><strong>Free:</strong> {(osData.memory.free / 1073741824).toFixed(2)} GB</p>
+          </div>
+          {/* A simple visual progress bar for RAM */}
+          <div className="progress-bar-bg">
+            <div 
+              className="progress-bar-fill" 
+              style={{ width: `${(osData.memory.used / osData.memory.total) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- PROCESS LIST TABLE --- */}
+      <div className="card full-width">
+        <h2>Active Processes (Top 50)</h2>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>PID</th>
+                <th>Name</th>
+                <th>State</th>
+                <th>CPU %</th>
+                <th>RAM %</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Only render the top 50 processes to prevent the browser from lagging */}
+              {osData.processes.slice(0, 50).map((proc) => (
+                <tr key={proc.pid}>
+                  <td>{proc.pid}</td>
+                  <td>{proc.name}</td>
+                  <td><span className={`state ${proc.state}`}>{proc.state}</span></td>
+                  <td>{proc.cpu.toFixed(1)}%</td>
+                  <td>{proc.mem.toFixed(1)}%</td>
+                  <td>
+                    <button onClick={() => killProcess(proc.pid)} className="kill-btn">
+                      Kill
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;
