@@ -32,6 +32,34 @@ function App() {
   // Show a loading screen until the first packet of data arrives from the backend
   if (!osData) return <div className="loading">Connecting to OS Engine...</div>;
 
+// 4. Process Control Function
+  const killProcess = async (pid) => {
+    // Safety check: Ask the user to confirm before sending the SIGKILL command
+    if (!window.confirm(`Are you sure you want to terminate Process ID: ${pid}?`)) return;
+
+    try {
+      const response = await fetch('http://localhost:5000/api/kill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pid })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        // If the OS blocked it (403 or 404), display the error banner for 5 seconds
+        setErrorMessage(`Error: ${result.message}`);
+        setTimeout(() => setErrorMessage(""), 5000);
+      } else {
+        // Success! We don't need to manually update the table because the next 
+        // 1-second WebSocket pulse will automatically reflect the closed process.
+        console.log(`Killed ${pid}`);
+      }
+    } catch (error) {
+      setErrorMessage("Network error: Could not reach the backend.");
+    }
+  };
+
 return (
     <div className="dashboard">
       <header>
