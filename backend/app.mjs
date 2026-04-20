@@ -1,10 +1,24 @@
 import express from 'express';
 import cors from 'cors';
 import si from 'systeminformation';
+import { createServer } from 'http';      // <-- NEW: Node's built-in HTTP module
+import { Server } from 'socket.io';       // <-- NEW: The WebSocket engine
 
-// Initialize the Express application
 const app = express();
 const PORT = 5000;
+
+// --- SERVER SETUP ---
+// We wrap the Express app with the native HTTP server
+const httpServer = createServer(app);
+
+// We bind Socket.io to that HTTP server. 
+// We MUST configure CORS here again, specifically for the WebSocket handshake.
+const io = new Server(httpServer, {
+    cors: {
+        origin: "http://localhost:5173", // This is the default port for Vite (React)
+        methods: ["GET", "POST"]
+    }
+});
 
 // --- MIDDLEWARE ---
 app.use(cors());
