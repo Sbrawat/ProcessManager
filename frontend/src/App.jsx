@@ -12,18 +12,24 @@ function App() {
   const [osData, setOsData] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // 3. The WebSocket Listener
+// 3. The WebSocket Listener
   useEffect(() => {
-    // Listen for the custom event we created in the Node backend
     socket.on('os-metrics', (data) => {
-      // Sort processes by CPU usage (Descending) so the heaviest tasks are always at the top
+      
+      // CHANGE: Sort processes by Name alphabetically for UI stability
       if (data.processes) {
-        data.processes.sort((a, b) => b.cpu - a.cpu);
+        data.processes.sort((a, b) => {
+          // Fallback to an empty string just in case the OS returns an undefined name
+          const nameA = a.name || "";
+          const nameB = b.name || "";
+          
+          return nameA.localeCompare(nameB);
+        });
       }
+      
       setOsData(data);
     });
 
-    // Cleanup function: If the component unmounts, stop listening to prevent memory leaks
     return () => {
       socket.off('os-metrics');
     };
@@ -31,7 +37,7 @@ function App() {
 
   // Show a loading screen until the first packet of data arrives from the backend
   if (!osData) return <div className="loading">Connecting to OS Engine...</div>;
-
+  
 // 4. Process Control Function
   const killProcess = async (pid) => {
     // Safety check: Ask the user to confirm before sending the SIGKILL command
@@ -104,7 +110,7 @@ return (
 
       {/* --- PROCESS LIST TABLE --- */}
       <div className="card full-width">
-        <h2>Active Processes (Top 50)</h2>
+        <h2>Active Processes</h2>
         <div className="table-container">
           <table>
             <thead>
@@ -119,7 +125,7 @@ return (
             </thead>
             <tbody>
               {/* Only render the top 50 processes to prevent the browser from lagging */}
-              {osData.processes.slice(0, 50).map((proc) => (
+              {osData.processes.map((proc) => (
                 <tr key={proc.pid}>
                   <td>{proc.pid}</td>
                   <td>{proc.name}</td>
