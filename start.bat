@@ -24,9 +24,6 @@ start "OS Backend" cmd /k "cd backend && npm run dev"
 :: Start the Vite React frontend in a new command prompt window
 start "OS Frontend" cmd /k "cd frontend && npm run dev"
 
-:: Start the Vite React frontend in a new command prompt window
-start "OS Frontend" cmd /k "cd frontend && npm run dev"
-
 echo.
 echo SUCCESS! Application servers are booting up.
 echo Waiting for Vite to initialize...
