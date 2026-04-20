@@ -1,47 +1,6 @@
-# Real-Time Process Monitoring Dashboard ⚙️
+# Real-Time Process Monitoring Dashboard
 
-A cross-platform, real-time operating system dashboard built to visualize system health, track resource consumption, and manage active processes. Created as a comprehensive project demonstrating core Operating Systems concepts.
-
-![Tech Stack](https://img.shields.io/badge/Frontend-React%20%7C%20Vite-blue) ![Tech Stack](https://img.shields.io/badge/Backend-Node.js%20%7C%20Express-green) ![Tech Stack](https://img.shields.io/badge/Real--Time-Socket.io-black) ![Tech Stack](https://img.shields.io/badge/OS-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-
-## 🌟 Features
-
-- **Live System Metrics:** Real-time visualization of overall CPU load (per core) and Memory (RAM) utilization using interactive charts.
-- **Process Tracking:** Dynamic, alphabetically sorted table of active processes displaying PID, Name, State, CPU %, and Memory %.
-- **Process Management:** Ability to securely terminate running processes directly from the UI using OS-level `SIGKILL` signals.
-- **Cross-Platform Compatibility:** Runs seamlessly on Windows, macOS, and Linux without requiring OS-specific code changes.
-- **One-Click Execution:** Automated startup scripts initialize dependencies, boot servers, and launch the dashboard in your default browser.
-
-## 🛠️ Tech Stack
-
-- **Frontend:** React.js, Vite, Recharts (SVG Data Visualization)
-- **Backend:** Node.js (ES Modules), Express.js
-- **Real-Time Data Stream:** Socket.io (WebSockets)
-- **OS Abstraction:** Systeminformation (NPM)
-
-## 📂 Project Structure
-
-This project is structured as a monorepo containing both the backend and frontend environments.
-
-```text
-os-process-dashboard/
-│
-├── backend/               # Node.js Data Engine & WebSocket Server
-│   ├── app.mjs            # Core server logic and OS interactions
-│   └── package.json
-│
-├── frontend/              # React.js UI
-│   ├── src/
-│   │   ├── App.jsx        # Main dashboard view and Socket listener
-│   │   └── App.css        # Dashboard styling
-│   └── package.json
-│
-├── start.bat              # One-click startup script for Windows
-├── start.sh               # One-click startup script for macOS/Linux
-└── README.md
-```
-
-# Real-Time Process Monitoring Dashboard ⚙️
+A cross-platform, real-time operating system dashboard built to visualize system health, track # Real-Time Process Monitoring Dashboard
 
 A cross-platform, real-time operating system dashboard built to visualize system health, track resource consumption, and manage active processes. Created as a comprehensive project demonstrating core Operating Systems concepts.
 
