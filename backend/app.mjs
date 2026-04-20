@@ -57,6 +57,41 @@ async function getSystemData() {
     }
 }
 
+// --- WEBSOCKET BROADCAST LOOP ---
+let activeClients = 0;
+let broadcastInterval;
+
+// Listen for a frontend React client to connect
+io.on('connection', (socket) => {
+    console.log(`🟢 Frontend connected: ${socket.id}`);
+    activeClients++;
+
+    // If this is the first person to open the dashboard, start the OS data engine!
+    if (activeClients === 1) {
+        console.log("Starting real-time OS monitoring loop...");
+
+        broadcastInterval = setInterval(async () => {
+            const data = await getSystemData();
+            if (data) {
+                // 'os-metrics' is the custom event name React will listen for
+                io.emit('os-metrics', data);
+            }
+        }, 1000); // 1000ms = 1 second refresh rate
+    }
+
+    // Listen for the frontend closing the tab/disconnecting
+    socket.on('disconnect', () => {
+        console.log(`🔴 Frontend disconnected: ${socket.id}`);
+        activeClients--;
+
+        // If everyone has left, stop the loop to save CPU resources
+        if (activeClients === 0) {
+            console.log("No active clients. Stopping OS monitoring loop.");
+            clearInterval(broadcastInterval);
+        }
+    });
+});
+
 // --- TEST DATA ENDPOINT (will be removed later) ---
 app.get('/api/system', async (req, res) => {
     const data = await getSystemData();
@@ -82,10 +117,10 @@ app.post('/api/kill', (req, res) => {
         process.kill(pid, 'SIGKILL');
         console.log(`Successfully killed process: ${pid}`);
         res.json({ success: true, message: `Process ${pid} terminated.` });
-        
+
     } catch (error) {
         console.error(`Failed to kill process ${pid}:`, error.message);
-        
+
         if (error.code === 'EPERM') {
             res.status(403).json({ success: false, message: "Access Denied. Run backend as Administrator/Root." });
         } else if (error.code === 'ESRCH') {
@@ -96,8 +131,17 @@ app.post('/api/kill', (req, res) => {
     }
 });
 
+// CHANGE THIS:
+// app.listen(PORT, () => { ... });
 // Start the server
-app.listen(PORT, () => {
+// app.listen(PORT, () => {
+//     console.log(`Backend server running on http://localhost:${PORT}`);
+//     console.log(`Ready to monitor OS processes...`);
+// });
+
+
+// TO THIS:
+httpServer.listen(PORT, () => {
     console.log(`Backend server running on http://localhost:${PORT}`);
     console.log(`Ready to monitor OS processes...`);
 });
