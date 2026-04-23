@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import './App.css';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 // 1. Establish the WebSocket connection outside the component
 // This prevents React from creating a new connection every time the UI re-renders.
@@ -11,23 +11,60 @@ function App() {
   // 2. State Management
   const [osData, setOsData] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [ramHistory, setRamHistory] = useState([]); // <-- NEW: Array to hold historical RAM data
 
 // 3. The WebSocket Listener
+  // useEffect(() => {
+  //   socket.on('os-metrics', (data) => {
+      
+  //     // CHANGE: Sort processes by Name alphabetically for UI stability
+  //     if (data.processes) {
+  //       data.processes.sort((a, b) => {
+  //         // Fallback to an empty string just in case the OS returns an undefined name
+  //         const nameA = a.name || "";
+  //         const nameB = b.name || "";
+          
+  //         return nameA.localeCompare(nameB);
+  //       });
+  //     }
+      
+  //     setOsData(data);
+  //   });
+
+  //   return () => {
+  //     socket.off('os-metrics');
+  //   };
+  // }, []);
+  
+  // 3. The WebSocket Listener
   useEffect(() => {
     socket.on('os-metrics', (data) => {
-      
-      // CHANGE: Sort processes by Name alphabetically for UI stability
       if (data.processes) {
         data.processes.sort((a, b) => {
-          // Fallback to an empty string just in case the OS returns an undefined name
           const nameA = a.name || "";
           const nameB = b.name || "";
-          
           return nameA.localeCompare(nameB);
         });
       }
-      
       setOsData(data);
+
+      // --- NEW: Track RAM History for the Line Chart ---
+      setRamHistory(prevHistory => {
+        const usedGb = parseFloat((data.memory.used / 1073741824).toFixed(2));
+        const timestamp = new Date().toLocaleTimeString('en-US', { 
+          hour12: false, 
+          hour: "numeric", 
+          minute: "numeric", 
+          second: "numeric" 
+        });
+
+        const newPoint = { time: timestamp, used: usedGb };
+        const updatedHistory = [...prevHistory, newPoint];
+        
+        // Keep only the last 20 data points to keep the chart clean
+        return updatedHistory.slice(-20); 
+      });
+
     });
 
     return () => {
@@ -78,35 +115,74 @@ return (
         <div className="card">
           <h2>CPU Load per Core (%)</h2>
           <div className="chart-container">
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={osData.cpu.cores.map((load, index) => ({ name: `Core ${index}`, load }))}>
-                <XAxis dataKey="name" stroke="#8884d8" />
-                <YAxis domain={[0, 100]} />
+            <ResponsiveContainer width="100%" height={450}>
+              {/* <BarChart data={osData.cpu.cores.map((load, index) => ({ name: `Core ${index}`, load }))}> */}
+              <BarChart data={osData.cpu.cores.map((load, index) => ({ name: `Core ${index+1}`, load }))}
+              margin={{ top: 20, right: 30, left: 0, bottom: 5 }} >
+                {/* <XAxis dataKey="name" stroke="#8884d8" /> */}
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#8884d8" 
+                  interval={0} 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={60} 
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis domain={[0, 100]} tickCount={11} interval={0}/>
                 <Tooltip />
                 {/* Dynamically color the bar red if load is > 80% */}
-                <Bar dataKey="load" fill="#4ade80" />
-              </BarChart>
+                <Bar dataKey="load">
+                  {osData.cpu.cores.map((load, index) => {
+                    // Math Trick: HSL colors (Hue, Saturation, Lightness). 
+                    // Hue 120 is Green, Hue 60 is Yellow, Hue 0 is Red.
+                    // As load goes from 0 to 100, the Hue smoothly drops from 120 to 0.
+                    const dynamicHue = (1 - (load / 100)) * 120;
+                    
+                    return (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={`hsl(${dynamicHue}, 100%, 45%)`} 
+                      />
+                    );
+                  })}
+                </Bar>              
+                </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* --- MEMORY USAGE --- */}
+      {/* --- MEMORY USAGE (LINE CHART) --- */}
         <div className="card">
           <h2>Memory Consumption (RAM)</h2>
           <div className="memory-stats">
-            <p><strong>Total:</strong> {(osData.memory.total / 1073741824).toFixed(2)} GB</p>
-            <p><strong>Used:</strong> {(osData.memory.used / 1073741824).toFixed(2)} GB</p>
-            <p><strong>Free:</strong> {(osData.memory.free / 1073741824).toFixed(2)} GB</p>
+            <p><strong>Total:</strong> {(osData.memory.total / 1073741824).toFixed(2)} GB </p>
+            <p><strong>Used:</strong> {(osData.memory.used / 1073741824).toFixed(2)} GB </p>
+            <p><strong>Free:</strong> {(osData.memory.free / 1073741824).toFixed(2)} GB </p>
           </div>
-          {/* A simple visual progress bar for RAM */}
-          <div className="progress-bar-bg">
-            <div 
-              className="progress-bar-fill" 
-              style={{ width: `${(osData.memory.used / osData.memory.total) * 100}%` }}
-            ></div>
+          
+          <div className="chart-container" style={{ marginTop: '20px' }}>
+            <ResponsiveContainer width="100%" height={450}>
+              <LineChart data={ramHistory} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                <XAxis dataKey="time" stroke="#8884d8" fontSize={12} />
+                {/* Dynamically set the Y-Axis max to the total RAM of the host machine */}
+                <YAxis domain={[0, Math.ceil(osData.memory.total / 1073741824)]} />
+                <Tooltip />
+                <Line 
+                  type="monotone" 
+                  dataKey="used" 
+                  stroke="#3b82f6" 
+                  strokeWidth={3} 
+                  dot={false} 
+                  isAnimationActive={false} // Disable animation so it scrolls smoothly
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
+
       </div>
+
 
       {/* --- PROCESS LIST TABLE --- */}
       <div className="card full-width">
