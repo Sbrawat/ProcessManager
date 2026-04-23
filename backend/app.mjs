@@ -131,16 +131,6 @@ app.post('/api/kill', (req, res) => {
     }
 });
 
-// CHANGE THIS:
-// app.listen(PORT, () => { ... });
-// Start the server
-// app.listen(PORT, () => {
-//     console.log(`Backend server running on http://localhost:${PORT}`);
-//     console.log(`Ready to monitor OS processes...`);
-// });
-
-
-// TO THIS:
 httpServer.listen(PORT, () => {
     console.log(`Backend server running on http://localhost:${PORT}`);
     console.log(`Ready to monitor OS processes...`);
